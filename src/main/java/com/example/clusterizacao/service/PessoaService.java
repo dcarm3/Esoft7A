@@ -13,7 +13,6 @@ public class PessoaService {
     private long nextId = 1;
 
     public PessoaService() {
-        // Dois centróides iniciais
         adicionarPessoa(new Pessoa(null, "João", 25, 3000.0, 2, true, null));
         adicionarPessoa(new Pessoa(null, "Maria", 45, 8000.0, 3, true, null));
     }
@@ -31,6 +30,11 @@ public class PessoaService {
         }
 
         pessoas.put(pessoa.getId(), pessoa);
+
+        atualizarCentroide(pessoa.getClusterId());
+
+        reorganizarClusters();
+
         return pessoa;
     }
 
@@ -62,14 +66,13 @@ public class PessoaService {
         return Math.sqrt(idade * idade + salario * salario + escolaridade * escolaridade);
     }
 
-    private Pessoa encontrarCentroideMaisProximo(Pessoa novaPessoa) {
+    private Pessoa encontrarCentroideMaisProximo(Pessoa pessoa) {
         return pessoas.values().stream()
                 .filter(Pessoa::isCentroide)
-                .min(Comparator.comparingDouble(c -> calcularDistancia(novaPessoa, c)))
+                .min(Comparator.comparingDouble(c -> calcularDistancia(pessoa, c)))
                 .orElse(null);
     }
 
-    // Método extra para cálculo de centróide virtual de um cluster
     public Pessoa calcularCentroideVirtual(Long clusterId) {
         List<Pessoa> membros = pessoas.values().stream()
                 .filter(p -> clusterId.equals(p.getClusterId()) && !p.isCentroide())
@@ -92,9 +95,31 @@ public class PessoaService {
         );
     }
 
+    public void atualizarCentroide(Long clusterId) {
+        Pessoa novoCentroide = calcularCentroideVirtual(clusterId);
+        if (novoCentroide == null) return;
+
+        pessoas.values().removeIf(p -> p.isCentroide() && p.getId().equals(clusterId));
+
+        novoCentroide.setId(clusterId);
+        pessoas.put(clusterId, novoCentroide);
+    }
+
+    public void reorganizarClusters() {
+        for (Pessoa pessoa : pessoas.values()) {
+            if (!pessoa.isCentroide()) {
+                Pessoa novoCentroide = encontrarCentroideMaisProximo(pessoa);
+                if (novoCentroide != null) {
+                    pessoa.setClusterId(novoCentroide.getId());
+                }
+            }
+        }
+    }
+
     public List<Pessoa> listarCentroideVirtuais() {
         Set<Long> clusterIds = pessoas.values().stream()
-                .map(Pessoa::getClusterId)
+                .filter(Pessoa::isCentroide)
+                .map(Pessoa::getId)
                 .collect(Collectors.toSet());
 
         return clusterIds.stream()
