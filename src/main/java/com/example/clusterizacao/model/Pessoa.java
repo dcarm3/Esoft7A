@@ -12,6 +12,7 @@ public class Pessoa {
     private String nome;
     private int idade;
     private double salario;
-    private int escolaridade; // 1=fundamental, 2=médio, 3=superior...
-    private boolean isCentroide;
+    private int escolaridade;
+    private boolean centroide;
+    private Long clusterId;
 }

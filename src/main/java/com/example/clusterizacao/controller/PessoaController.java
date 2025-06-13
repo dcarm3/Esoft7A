@@ -43,4 +43,9 @@ public class PessoaController {
         Pessoa p = service.obterPorId(id);
         return p != null ? ResponseEntity.ok(p) : ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/centroides-virtuais")
+    public List<Pessoa> listarCentroidesVirtuais() {
+        return service.listarCentroideVirtuais();
+    }
 }
