@@ -16,7 +16,7 @@ public class PessoaService {
     private static final double LIMIAR_DISTANCIA = 30.0;
 
     public PessoaService() {
-        adicionarPessoa(new Pessoa(null, "João", 25, 3000.0, 2, "Engenheiro", true, null));
+        adicionarPessoa(new Pessoa(null, "Matheus", 25, 3000.0, 2, "Engenheiro", true, null));
         adicionarPessoa(new Pessoa(null, "Maria", 45, 8000.0, 3, "Professora", true, null));
     }
 
@@ -62,7 +62,6 @@ public class PessoaService {
         return pessoas.get(id);
     }
 
-    // Conversão de dados categóricos
     private Pessoa obterPessoaNumerica(Pessoa pessoa) {
         int profissaoCode = profissaoMap.computeIfAbsent(
                 pessoa.getProfissao() == null ? "Desconhecido" : pessoa.getProfissao(),
