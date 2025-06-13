@@ -12,6 +12,8 @@ public class PessoaService {
     private final Map<Long, Pessoa> pessoas = new HashMap<>();
     private long nextId = 1;
 
+    private static final double LIMIAR_DISTANCIA = 30.0;
+
     public PessoaService() {
         adicionarPessoa(new Pessoa(null, "João", 25, 3000.0, 2, true, null));
         adicionarPessoa(new Pessoa(null, "Maria", 45, 8000.0, 3, true, null));
@@ -32,8 +34,8 @@ public class PessoaService {
         pessoas.put(pessoa.getId(), pessoa);
 
         atualizarCentroide(pessoa.getClusterId());
-
         reorganizarClusters();
+        analisarDispersao();
 
         return pessoa;
     }
@@ -114,6 +116,43 @@ public class PessoaService {
                 }
             }
         }
+
+        Set<Long> clusterIds = pessoas.values().stream()
+                .filter(Pessoa::isCentroide)
+                .map(Pessoa::getId)
+                .collect(Collectors.toSet());
+        for (Long clusterId : clusterIds) {
+            atualizarCentroide(clusterId);
+        }
+    }
+
+    public void analisarDispersao() {
+        List<Pessoa> candidatos = new ArrayList<>();
+
+        for (Pessoa pessoa : pessoas.values()) {
+            if (!pessoa.isCentroide()) {
+                Pessoa centroideAtual = pessoas.get(pessoa.getClusterId());
+                double distAtual = calcularDistancia(pessoa, centroideAtual);
+
+                Pessoa centroideMaisProximo = encontrarCentroideMaisProximo(pessoa);
+                double distMaisProx = calcularDistancia(pessoa, centroideMaisProximo);
+
+                if (distAtual > LIMIAR_DISTANCIA && centroideMaisProximo != centroideAtual) {
+                    candidatos.add(pessoa);
+                }
+            }
+        }
+
+        for (Pessoa p : candidatos) {
+            Pessoa novoCentroide = new Pessoa(nextId++, p.getNome() + " Cluster", p.getIdade(),
+                    p.getSalario(), p.getEscolaridade(), true, null);
+            novoCentroide.setClusterId(novoCentroide.getId());
+
+            pessoas.put(novoCentroide.getId(), novoCentroide);
+            p.setClusterId(novoCentroide.getId());
+        }
+
+        reorganizarClusters();
     }
 
     public List<Pessoa> listarCentroideVirtuais() {
