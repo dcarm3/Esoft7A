@@ -2,7 +2,7 @@ package com.example.clusterizacao.controller;
 
 import com.example.clusterizacao.model.Pessoa;
 import com.example.clusterizacao.service.PessoaService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,41 +11,31 @@ import java.util.List;
 @RequestMapping("/pessoas")
 public class PessoaController {
 
-    private final PessoaService service;
-
-    public PessoaController(PessoaService service) {
-        this.service = service;
-    }
+    @Autowired
+    private PessoaService pessoaService;
 
     @PostMapping
-    public Pessoa criar(@RequestBody Pessoa pessoa) {
-        return service.adicionarPessoa(pessoa);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Pessoa> atualizar(@PathVariable Long id, @RequestBody Pessoa pessoa) {
-        Pessoa atualizada = service.atualizarPessoa(id, pessoa);
-        return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> remover(@PathVariable Long id) {
-        return service.removerPessoa(id) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    public Pessoa adicionar(@RequestBody Pessoa pessoa) {
+        return pessoaService.adicionarPessoa(pessoa);
     }
 
     @GetMapping
     public List<Pessoa> listar() {
-        return service.listarPessoas();
+        return pessoaService.listarPessoas();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Pessoa> buscarPorId(@PathVariable Long id) {
-        Pessoa p = service.obterPorId(id);
-        return p != null ? ResponseEntity.ok(p) : ResponseEntity.notFound().build();
+    public Pessoa buscar(@PathVariable Long id) {
+        return pessoaService.obterPorId(id);
     }
 
-    @GetMapping("/centroides-virtuais")
-    public List<Pessoa> listarCentroidesVirtuais() {
-        return service.listarCentroideVirtuais();
+    @PutMapping("/{id}")
+    public Pessoa atualizar(@PathVariable Long id, @RequestBody Pessoa pessoa) {
+        return pessoaService.atualizarPessoa(id, pessoa);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deletar(@PathVariable Long id) {
+        pessoaService.removerPessoa(id);
     }
 }

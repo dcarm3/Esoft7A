@@ -10,13 +10,14 @@ import java.util.stream.Collectors;
 public class PessoaService {
 
     private final Map<Long, Pessoa> pessoas = new HashMap<>();
+    private final Map<String, Integer> profissaoMap = new HashMap<>();
+    private int profissaoIndex = 0;
     private long nextId = 1;
-
     private static final double LIMIAR_DISTANCIA = 30.0;
 
     public PessoaService() {
-        adicionarPessoa(new Pessoa(null, "João", 25, 3000.0, 2, true, null));
-        adicionarPessoa(new Pessoa(null, "Maria", 45, 8000.0, 3, true, null));
+        adicionarPessoa(new Pessoa(null, "João", 25, 3000.0, 2, "Engenheiro", true, null));
+        adicionarPessoa(new Pessoa(null, "Maria", 45, 8000.0, 3, "Professora", true, null));
     }
 
     public Pessoa adicionarPessoa(Pessoa pessoa) {
@@ -61,11 +62,35 @@ public class PessoaService {
         return pessoas.get(id);
     }
 
+    // Conversão de dados categóricos
+    private Pessoa obterPessoaNumerica(Pessoa pessoa) {
+        int profissaoCode = profissaoMap.computeIfAbsent(
+                pessoa.getProfissao() == null ? "Desconhecido" : pessoa.getProfissao(),
+                key -> profissaoIndex++
+        );
+
+        return new Pessoa(
+                pessoa.getId(),
+                pessoa.getNome(),
+                pessoa.getIdade(),
+                pessoa.getSalario(),
+                pessoa.getEscolaridade(),
+                String.valueOf(profissaoCode),
+                pessoa.isCentroide(),
+                pessoa.getClusterId()
+        );
+    }
+
     private double calcularDistancia(Pessoa p1, Pessoa p2) {
-        double idade = p1.getIdade() - p2.getIdade();
-        double salario = p1.getSalario() - p2.getSalario();
-        double escolaridade = p1.getEscolaridade() - p2.getEscolaridade();
-        return Math.sqrt(idade * idade + salario * salario + escolaridade * escolaridade);
+        Pessoa np1 = obterPessoaNumerica(p1);
+        Pessoa np2 = obterPessoaNumerica(p2);
+
+        double idade = np1.getIdade() - np2.getIdade();
+        double salario = np1.getSalario() - np2.getSalario();
+        double escolaridade = np1.getEscolaridade() - np2.getEscolaridade();
+        double profissao = Double.parseDouble(np1.getProfissao()) - Double.parseDouble(np2.getProfissao());
+
+        return Math.sqrt(idade * idade + salario * salario + escolaridade * escolaridade + profissao * profissao);
     }
 
     private Pessoa encontrarCentroideMaisProximo(Pessoa pessoa) {
@@ -86,15 +111,7 @@ public class PessoaService {
         double mediaSalario = membros.stream().mapToDouble(Pessoa::getSalario).average().orElse(0);
         double mediaEscolaridade = membros.stream().mapToInt(Pessoa::getEscolaridade).average().orElse(0);
 
-        return new Pessoa(
-                null,
-                "Centróide Virtual",
-                (int) mediaIdade,
-                mediaSalario,
-                (int) mediaEscolaridade,
-                true,
-                clusterId
-        );
+        return new Pessoa(null, "Centróide Virtual", (int) mediaIdade, mediaSalario, (int) mediaEscolaridade, "Desconhecido", true, clusterId);
     }
 
     public void atualizarCentroide(Long clusterId) {
@@ -102,7 +119,6 @@ public class PessoaService {
         if (novoCentroide == null) return;
 
         pessoas.values().removeIf(p -> p.isCentroide() && p.getId().equals(clusterId));
-
         novoCentroide.setId(clusterId);
         pessoas.put(clusterId, novoCentroide);
     }
@@ -121,6 +137,7 @@ public class PessoaService {
                 .filter(Pessoa::isCentroide)
                 .map(Pessoa::getId)
                 .collect(Collectors.toSet());
+
         for (Long clusterId : clusterIds) {
             atualizarCentroide(clusterId);
         }
@@ -145,7 +162,7 @@ public class PessoaService {
 
         for (Pessoa p : candidatos) {
             Pessoa novoCentroide = new Pessoa(nextId++, p.getNome() + " Cluster", p.getIdade(),
-                    p.getSalario(), p.getEscolaridade(), true, null);
+                    p.getSalario(), p.getEscolaridade(), p.getProfissao(), true, null);
             novoCentroide.setClusterId(novoCentroide.getId());
 
             pessoas.put(novoCentroide.getId(), novoCentroide);
@@ -153,17 +170,5 @@ public class PessoaService {
         }
 
         reorganizarClusters();
-    }
-
-    public List<Pessoa> listarCentroideVirtuais() {
-        Set<Long> clusterIds = pessoas.values().stream()
-                .filter(Pessoa::isCentroide)
-                .map(Pessoa::getId)
-                .collect(Collectors.toSet());
-
-        return clusterIds.stream()
-                .map(this::calcularCentroideVirtual)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
     }
 }
